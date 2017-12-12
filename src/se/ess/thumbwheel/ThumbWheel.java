@@ -42,6 +42,7 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -83,6 +84,35 @@ public class ThumbWheel extends GridPane {
     private final List<Button> integerDecrementButtons = new ArrayList<>(3);
     private final List<Button> integerIncrementButtons = new ArrayList<>(3);
     private final List<Label> integerLabels = new ArrayList<>(3);
+    private final EventHandler<ScrollEvent> labelScrollHandler = event -> {
+
+        int index = integerLabels.indexOf(event.getSource());
+        double deltaY = event.getDeltaY();
+
+//  TODO: CR: add "scrollEnable" property.
+
+        if ( index >= 0 ) {
+            if ( deltaY > 0 ) {
+                setValue(getValue() + (double) integerDecrementButtons.get(index).getUserData());
+            } else {
+                setValue(getValue() + (double) integerIncrementButtons.get(index).getUserData());
+            }
+        } else {
+
+            index = decimalLabels.indexOf(event.getSource());
+
+            if ( index >= 0 ) {
+                if ( deltaY > 0 ) {
+                    setValue(getValue() + (double) decimalDecrementButtons.get(index).getUserData());
+                } else {
+                    setValue(getValue() + (double) decimalIncrementButtons.get(index).getUserData());
+                }
+            }
+
+        }
+
+
+    };
     private Label separatorLabel = null;
     private Label signLabel = null;
     private DecimalFormat valueFormat = new DecimalFormat("000.00");
@@ -651,7 +681,17 @@ public class ThumbWheel extends GridPane {
      */
     private Label createLabel( char character, Stack<Label> pool ) {
 
-        Label label = pool.isEmpty() ? new Label() : pool.pop();
+        Label label;
+
+        if ( pool.isEmpty() ) {
+
+            label = new Label();
+
+            label.setOnScroll(labelScrollHandler);
+
+        } else {
+            label = pool.pop();
+        }
 
         label.setAlignment(Pos.CENTER);
         label.setFont(getFont());
