@@ -1,0 +1,923 @@
+/**
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ * Copyright (C) 2017 by European Spallation Source ERIC.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package se.ess.thumbwheel;
+
+
+import java.text.DecimalFormat;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+import java.util.logging.Logger;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.ObservableList;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.RowConstraints;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+
+import static java.lang.Double.MAX_VALUE;
+import static javafx.scene.layout.Priority.SOMETIMES;
+
+
+
+/**
+ * @author Claudio Rosati, European Spallation Source ERIC
+ * @version 1.0.0 5 Dec 2017
+ */
+@SuppressWarnings( "ClassWithoutLogger" )
+public class ThumbWheel extends GridPane {
+
+    private static final Color DEFAULT_DECREMENT_BUTTON_COLOR = Color.web("#d7d7ec");
+    private static final Font DEFAULT_FONT = new Label().getFont();
+    private static final Color DEFAULT_INCREMENT_BUTTON_COLOR = Color.web("#ecd7d7");
+    private static final char INVALID_MARK = '\u00D7';
+    private static final char SIGN_MARK = '\u2013';
+    private static final char SIGN_SPACE = '\u2002';
+    private static final Logger LOGGER = Logger.getLogger(ThumbWheel.class.getName());
+
+    private String decimalRepresentation = "00";
+    private final List<Button> decimalDecrementButtons = new ArrayList<>(3);
+    private final List<Button> decimalIncrementButtons = new ArrayList<>(3);
+    private final List<Label> decimalLabels = new ArrayList<>(2);
+    private double effectiveMax = 100;
+    private double effectiveMin = 0;
+    private boolean hasNegativeSign = false;
+    private boolean hasDotSeparator = true;
+    private String integerRepresentation = "0";
+    private final List<Button> integerDecrementButtons = new ArrayList<>(3);
+    private final List<Button> integerIncrementButtons = new ArrayList<>(3);
+    private final List<Label> integerLabels = new ArrayList<>(3);
+    private Label separatorLabel = null;
+    private Label signLabel = null;
+    private DecimalFormat valueFormat = new DecimalFormat("000.00");
+
+    /*
+     * ---- backgroundColor ----------------------------------------------------
+     */
+    private final ObjectProperty<Color> backgroundColor = new SimpleObjectProperty<Color>(this, "backgroundColor", Color.LIGHTGRAY) {
+        @Override
+        protected void invalidated() {
+            if ( get() == null ) {
+                set(Color.LIGHTGRAY);
+            } else {
+                setStyle(MessageFormat.format(
+                    "-se-thumbwheel-inner-background: rgb({0,number,###}, {1,number,###}, {2,number,###});",
+                    (int) ( 255 * getBackgroundColor().getRed() ),
+                    (int) ( 255 * getBackgroundColor().getGreen() ),
+                    (int) ( 255 * getBackgroundColor().getBlue() )
+                ));
+            }
+        }
+    };
+
+    public ObjectProperty<Color> backgroundColorProperty() {
+        return backgroundColor;
+    }
+
+    public Color getBackgroundColor() {
+        return backgroundColor.get();
+    }
+
+    public void setBackgroundColor( Color backgroundColor ) {
+        this.backgroundColor.set(backgroundColor);
+    }
+
+    /*
+     * ---- decrementButtonsColor ----------------------------------------------
+     */
+    private final ObjectProperty<Color> decrementButtonsColor = new SimpleObjectProperty<Color>(this, "decrementButtonsColor", DEFAULT_DECREMENT_BUTTON_COLOR) {
+        @Override
+        protected void invalidated() {
+            if ( get() == null ) {
+                set(DEFAULT_DECREMENT_BUTTON_COLOR);
+            }
+        }
+    };
+
+    public ObjectProperty<Color> decrementButtonsColorProperty() {
+        return decrementButtonsColor;
+    }
+
+    public Color getDecrementButtonsColor() {
+        return decrementButtonsColor.get();
+    }
+
+    public void setDecrementButtonsColor( Color decrementButtonsColor ) {
+        this.decrementButtonsColor.set(decrementButtonsColor);
+    }
+
+    /*
+     * ---- decimalDigits ------------------------------------------------------
+     */
+    private final IntegerProperty decimalDigits = new SimpleIntegerProperty(this, "decimalDigits", 2) {
+        @Override
+        protected void invalidated() {
+
+            int val = get();
+
+            if ( needsClamping(val, 0, Byte.MAX_VALUE) ) {
+
+                val = clamp(get(), 0, Byte.MAX_VALUE);
+
+                set(val);
+
+            } else {
+                update(true);
+            }
+
+        }
+    };
+
+    public IntegerProperty decimalDigitsProperty() {
+        return decimalDigits;
+    }
+
+    public int getDecimalDigits() {
+        return decimalDigits.get();
+    }
+
+    public void setDecimalDigits( int decimalDigits ) {
+        this.decimalDigits.set(decimalDigits);
+    }
+
+    /*
+     * ---- foregroundColor ----------------------------------------------------
+     */
+    private final ObjectProperty<Color> foregroundColor = new SimpleObjectProperty<Color>(this, "foregroundColor", Color.BLACK) {
+        @Override
+        protected void invalidated() {
+            if ( get() == null ) {
+                set(Color.BLACK);
+            }
+        }
+    };
+
+    public ObjectProperty<Color> foregroundColorProperty() {
+        return foregroundColor;
+    }
+
+    public Color getForegroundColor() {
+        return foregroundColor.get();
+    }
+
+    public void setForegroundColor( Color foregroundColor ) {
+        this.foregroundColor.set(foregroundColor);
+    }
+
+    /*
+     * ---- font ---------------------------------------------------------------
+     */
+    private final ObjectProperty<Font> font = new SimpleObjectProperty<Font>(this, "font", DEFAULT_FONT) {
+        @Override
+        protected void invalidated() {
+            if ( get() == null ) {
+                set(DEFAULT_FONT);
+            }
+        }
+    };
+
+    public ObjectProperty<Font> fontProperty() {
+        return font;
+    }
+
+    public Font getFont() {
+        return font.get();
+    }
+
+    public void setFont( Font font ) {
+        this.font.set(font);
+    }
+
+    /*
+     * ---- incrementButtonsColor ----------------------------------------------
+     */
+    private final ObjectProperty<Color> incrementButtonsColor = new SimpleObjectProperty<Color>(this, "incrementButtonsColor", DEFAULT_INCREMENT_BUTTON_COLOR) {
+        @Override
+        protected void invalidated() {
+            if ( get() == null ) {
+                set(DEFAULT_INCREMENT_BUTTON_COLOR);
+            }
+        }
+    };
+
+    public ObjectProperty<Color> incrementButtonsColorProperty() {
+        return incrementButtonsColor;
+    }
+
+    public Color getIncrementButtonsColor() {
+        return incrementButtonsColor.get();
+    }
+
+    public void setIncrementButtonsColor( Color incrementButtonsColor ) {
+        this.incrementButtonsColor.set(incrementButtonsColor);
+    }
+
+    /*
+     * ---- integerDigits ------------------------------------------------------
+     */
+    private final IntegerProperty integerDigits = new SimpleIntegerProperty(this, "integerDigits", 3) {
+        @Override
+        protected void invalidated() {
+
+            int val = get();
+
+            if ( needsClamping(val, 1, Byte.MAX_VALUE) ) {
+
+                val = clamp(get(), 1, Byte.MAX_VALUE);
+
+                set(val);
+
+            } else {
+                update(true);
+            }
+
+        }
+    };
+
+    public IntegerProperty integerDigitsProperty() {
+        return integerDigits;
+    }
+
+    public int getIntegerDigits() {
+        return integerDigits.get();
+    }
+
+    public void setIntegerDigits( int integerDigits ) {
+        this.integerDigits.set(integerDigits);
+    }
+
+    /*
+     * ---- invalid ------------------------------------------------------------
+     */
+    private final BooleanProperty invalid = new SimpleBooleanProperty(this, "invalid", false);
+
+    public ReadOnlyBooleanProperty invalidProperty() {
+        return invalid;
+    }
+
+    public boolean isInvalid() {
+        return invalid.get();
+    }
+
+    private void setInvalid( boolean invalid ) {
+        this.invalid.set(invalid);
+    }
+
+    /*
+     * ---- invalidColor -------------------------------------------------------
+     */
+    private final ObjectProperty<Color> invalidColor = new SimpleObjectProperty<Color>(this, "invalidColor", Color.RED) {
+        @Override
+        protected void invalidated() {
+            if ( get() == null ) {
+                set(Color.RED);
+            }
+        }
+    };
+
+    public ObjectProperty<Color> invalidColorProperty() {
+        return invalidColor;
+    }
+
+    public Color getInvalidColor() {
+        return invalidColor.get();
+    }
+
+    public void setInvalidColor( Color invalidColor ) {
+        this.invalidColor.set(invalidColor);
+    }
+
+    /*
+     * ---- maxValue -----------------------------------------------------------
+     */
+    private final DoubleProperty maxValue = new SimpleDoubleProperty(this, "maxValue", effectiveMax) {
+        @Override
+        protected void invalidated() {
+
+            double val = get();
+            double min = getMinValue();
+
+            if ( needsClamping(val, min, Double.MAX_VALUE) ) {
+
+                val = clamp(val, min, Double.MAX_VALUE);
+
+                set(val);
+
+            } else {
+
+                double cur = getValue();
+
+                if ( needsClamping(cur, min, val) ) {
+                    setValue(clamp(cur, min, val));
+                } else {
+                    update(false);
+                }
+
+            }
+
+        }
+    };
+
+    public DoubleProperty maxValueProperty() {
+        return maxValue;
+    }
+
+    public double getMaxValue() {
+        return maxValue.get();
+    }
+
+    public void setMaxValue( double maxValue ) {
+        this.maxValue.set(maxValue);
+    }
+
+    /*
+     * ---- minValue -----------------------------------------------------------
+     */
+    private final DoubleProperty minValue = new SimpleDoubleProperty(this, "minValue", effectiveMin) {
+        @Override
+        protected void invalidated() {
+
+            double val = get();
+            double max = getMaxValue();
+
+            if ( needsClamping(val, - Double.MAX_VALUE, max) ) {
+
+                val = clamp(val, - Double.MAX_VALUE, max);
+
+                set(val);
+
+            } else {
+
+                double cur = getValue();
+
+                if ( needsClamping(cur, val, max) ) {
+                    setValue(clamp(cur, val, max));
+                } else {
+                    update(true);
+                }
+
+            }
+
+        }
+    };
+
+    public DoubleProperty minValueProperty() {
+        return minValue;
+    }
+
+    public double getMinValue() {
+        return minValue.get();
+    }
+
+    public void setMinValue( double minValue ) {
+        this.minValue.set(minValue);
+    }
+
+    /*
+     * ---- value --------------------------------------------------------------
+     */
+    private final DoubleProperty value = new SimpleDoubleProperty(this, "value", 0) {
+        @Override
+        protected void invalidated() {
+
+            double val = get();
+            double min = getMinValue();
+            double max = getMaxValue();
+
+            if ( needsClamping(val, min, max) ) {
+
+                val = clamp(val, min, max);
+
+                set(val);
+
+            } else {
+                updateValue();
+            }
+
+        }
+    };
+
+    public DoubleProperty valueProperty() {
+        return value;
+    }
+
+    public double getValue() {
+        return value.get();
+    }
+
+    public void setValue( double currentValue ) {
+        this.value.set(currentValue);
+    }
+
+    /*
+     * ---- instance initializer -----------------------------------------------
+     */
+    {
+        initialize();
+    }
+
+    /**
+     * Clamp the given {@code value} inside a range defined by the given minimum
+     * and maximum values.
+     *
+     * @param value The value to be clamped.
+     * @param min   The clamp range minimum value.
+     * @param max   The clamp range maximum value.
+     * @return {@code value} if it's inside the range, otherwise {@code min} if
+     *         {@code value} is below the range, or {@code max} if above the range.
+     */
+    private double clamp ( final double value, final double min, final double max ) {
+        if ( value < min ) {
+            return min;
+        } else if ( value > max ) {
+            return max;
+        } else {
+            return value;
+        }
+    }
+
+    /**
+     * Clamp the given {@code value} inside a range defined by the given minimum
+     * and maximum values.
+     *
+     * @param value The value to be clamped.
+     * @param min   The clamp range minimum value.
+     * @param max   The clamp range maximum value.
+     * @return {@code value} if it's inside the range, otherwise {@code min} if
+     *         {@code value} is below the range, or {@code max} if above the range.
+     */
+    private int clamp ( final int value, final int min, final int max ) {
+        if ( value < min ) {
+            return min;
+        } else if ( value > max ) {
+            return max;
+        } else {
+            return value;
+        }
+    }
+
+    /**
+     * @param priority     The {@link Priority) of the column.
+     * @param percentWidth The percentage of the grid width occupied by the column, or {@code -1}.
+     * @return A newly created {@link ColumnConstraints} object.
+     */
+    private ColumnConstraints createColumnConstraints ( Priority priority, double percentWidth ) {
+
+        ColumnConstraints cc = new ColumnConstraints(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE, USE_COMPUTED_SIZE, priority, HPos.CENTER, true);
+
+        cc.setPercentWidth(percentWidth);
+
+        return cc;
+
+    }
+
+    /**
+     * @param percentHeight The percentage of the grid height occupied by the row, or {@code -1}.
+     * @return A newly created {@link RowConstraints} object.
+     */
+    private RowConstraints createRowConstraints ( double percentHeight ) {
+
+        RowConstraints rc = new RowConstraints(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE, USE_COMPUTED_SIZE, SOMETIMES, VPos.CENTER, true);
+
+        rc.setPercentHeight(percentHeight);
+
+        return rc;
+
+    }
+
+    /**
+     * Return a configured {@link Button}, taking it from the given {@code pool}
+     * or creating it from scratch.
+     *
+     * @param color The button {@link Color}.
+     * @param pool  The pool of already existing {@link Button}s to be recycled.
+     * @return A configured {@link Button}.
+     */
+    private Button createButton( Color color, Stack<Button> pool ) {
+
+        Button button = pool.isEmpty() ? new Button() : pool.pop();
+
+        button.setGraphicTextGap(0);
+        button.setMaxSize(MAX_VALUE, MAX_VALUE);
+        button.setMinSize(0, 0);
+        button.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+        button.setStyle(createColorStyle("-fx-base", color));
+
+        return button;
+
+    }
+
+    /**
+     * Build a properly formatted CSS color property.
+     *
+     * @param style The color property style name (e.g. {@code "-fx-color"}).
+     * @param color The JavaFX {@link Color}.
+     * @return A properly formatted CSS color style string.
+     */
+    private String createColorStyle ( String style, Color color ) {
+        if ( color.isOpaque() ) {
+            return MessageFormat.format(
+                "{0}: rgb({1,number,###}, {2,number,###}, {3,number,###});",
+                style,
+                (int) ( 255 * color.getRed() ),
+                (int) ( 255 * color.getGreen() ),
+                (int) ( 255 * color.getBlue() )
+            );
+        } else {
+            return MessageFormat.format(
+                "{0}: rgba({1,number,###}, {2,number,###}, {3,number,###}, {4,number,###});",
+                style,
+                (int) ( 255 * color.getRed() ),
+                (int) ( 255 * color.getGreen() ),
+                (int) ( 255 * color.getBlue() ),
+                (int) ( 255 * color.getOpacity())
+            );
+        }
+    }
+
+    /**
+     * Return a configured {@link Label}, taking it from the given {@code pool}
+     * or creating it from scratch.
+     *
+     * @param character The label single character..
+     * @param pool      The pool of already existing {@link Button}s to be recycled.
+     * @return A configured {@link Label}.
+     */
+    private Label createLabel( char character, Stack<Label> pool ) {
+
+        Label label = pool.isEmpty() ? new Label() : pool.pop();
+
+        label.setAlignment(Pos.CENTER);
+        label.setFont(getFont());
+        label.setMaxSize(MAX_VALUE, MAX_VALUE);
+        label.setMinSize(0, 0);
+        label.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+        label.setText(String.valueOf(character));
+        label.setTextFill(getForegroundColor());
+
+        return label;
+
+    }
+
+    /**
+     * Initialize the component, binding various properties.
+     */
+    private void initialize() {
+
+        getStylesheets().add(getClass().getResource("/styles/thumbwheel.css").toExternalForm());
+        getStyleClass().add("thumb-wheel");
+        setStyle(createColorStyle("-se-thumbwheel-inner-background", getBackgroundColor()));
+
+        setHgap(2.0);
+        setPadding(new Insets(3));
+
+        ObservableList<RowConstraints> rowConstraints = getRowConstraints();
+
+        rowConstraints.add(createRowConstraints(25));
+        rowConstraints.add(createRowConstraints(50));
+        rowConstraints.add(createRowConstraints(25));
+
+        update(true);
+
+    }
+
+    /**
+     * Tell if the given {@code value} needs to be clamped into the range defined
+     * by the given minimum and maximum values.
+     *
+     * @param value The value to be tested.
+     * @param min   The clamp range minimum value.
+     * @param max   The clamp range maximum value.
+     * @return {@code false} if the given value is inside the range, {@code true}
+     *         if it needs to be clamped.
+     */
+    private boolean needsClamping ( final double value, final double min, final double max ) {
+        return ( value < min ||  value > max );
+    }
+
+    /**
+     * Tell if the given {@code value} needs to be clamped into the range defined
+     * by the given minimum and maximum values.
+     *
+     * @param value The value to be tested.
+     * @param min   The clamp range minimum value.
+     * @param max   The clamp range maximum value.
+     * @return {@code false} if the given value is inside the range, {@code true}
+     *         if it needs to be clamped.
+     */
+    private boolean needsClamping ( final int value, final int min, final int max ) {
+        return ( value < min ||  value > max );
+    }
+
+    /**
+     * Update this pane.
+     *
+     * @param updateChildren {@code true} if the children must be updated too.
+     */
+    private void update( boolean updateChildren ) {
+
+        int iDigits = getIntegerDigits();
+        int dDigits = getDecimalDigits();
+        StringBuilder builder = new StringBuilder(iDigits + 1 + dDigits);
+        StringBuilder extremaBuilder = new StringBuilder(iDigits + 1 + dDigits);
+
+        for ( int i = 0; i < iDigits; i++ ) {
+            builder.append('0');
+            extremaBuilder.append('9');
+        }
+
+        if ( dDigits > 0 ) {
+
+            hasDotSeparator = dDigits > 0;
+
+            builder.append('.');
+            extremaBuilder.append('.');
+            
+            for ( int i = 0; i < dDigits; i++ ) {
+                builder.append('0');
+                extremaBuilder.append('9');
+            }
+
+        } else {
+            hasDotSeparator = false;
+        }
+
+        String format = builder.toString();
+
+        valueFormat = new DecimalFormat(format);
+
+        double min = getMinValue();
+        double max = getMaxValue();
+
+        hasNegativeSign = ( min < 0 );
+
+        double eMax = Double.parseDouble(extremaBuilder.toString());
+
+        effectiveMax = Math.min(max, eMax);
+
+        double eMin = hasNegativeSign ? -eMax : 0;
+
+        effectiveMin = Math.max(min, eMin);
+
+//        LOGGER.info(MessageFormat.format(
+//            "Something updated"
+//                + "\n         Value: {0,number,###############0.###############}"
+//                + "\n           Min: {1,number,###############0.###############}"
+//                + "\n           Max: {2,number,###############0.###############}"
+//                + "\nInteger Digits: {3,number,###############0}"
+//                + "\nDecimal Digits: {4,number,###############0}"
+//                + "\n Negative Sign: {5}"
+//                + "\n Dot Separator: {6}"
+//                + "\n        Format: {7}"
+//                + "\n Effective Min: {8,number,###############0.###############}"
+//                + "\n Effective Max: {9,number,###############0.###############}"
+//                + "\nInteger String: {10}"
+//                + "\nDecimal String: {11}",
+//            getValue(),
+//            min,
+//            max,
+//            iDigits,
+//            dDigits,
+//            hasNegativeSign,
+//            hasDotSeparator,
+//            format,
+//            effectiveMin,
+//            effectiveMax,
+//            integerRepresentation,
+//            decimalRepresentation
+//        ));
+
+        if ( updateChildren ) {
+            updateLayout();
+        }
+
+        updateValue();
+
+    }
+
+    @SuppressWarnings( "ValueOfIncrementOrDecrementUsed" )
+    private void updateLayout() {
+
+        //  --------------------------------------------------------------------
+        //  Collect existing labes for recycling.
+        //
+        Stack<Label> labelsPool = new Stack<>();
+
+        if ( signLabel != null ) {
+
+            labelsPool.add(signLabel);
+
+            signLabel = null;
+
+        }
+
+        if ( separatorLabel != null ) {
+
+            labelsPool.add(separatorLabel);
+
+            separatorLabel = null;
+
+        }
+
+        labelsPool.addAll(integerLabels);
+        labelsPool.addAll(decimalLabels);
+
+        integerLabels.clear();
+        decimalLabels.clear();
+
+        //  --------------------------------------------------------------------
+        //  Collect existing buttons for recycling.
+        //
+        Stack<Button> buttonsPool = new Stack<>();
+
+        buttonsPool.addAll(integerIncrementButtons);
+        buttonsPool.addAll(integerDecrementButtons);
+        buttonsPool.addAll(decimalIncrementButtons);
+        buttonsPool.addAll(decimalDecrementButtons);
+
+        integerIncrementButtons.clear();
+        integerDecrementButtons.clear();
+        decimalIncrementButtons.clear();
+        decimalDecrementButtons.clear();
+
+        //  --------------------------------------------------------------------
+        //  Clear current children and column constraints.
+        //
+        ObservableList<ColumnConstraints> columnConstraints = getColumnConstraints();
+        ObservableList<Node> children = getChildren();
+
+        columnConstraints.clear();
+        children.clear();
+
+        //  --------------------------------------------------------------------
+        //  Create new children and layout them.
+        //
+        int iDigits = getIntegerDigits();
+        int dDigits = getDecimalDigits();
+        double digitPercentWidth = 100.0 / ( iDigits + dDigits + ( hasNegativeSign ? .5 : 0) + ( hasDotSeparator ? .5 : 0));
+        int columnIndex = 0;
+
+        if ( hasNegativeSign ) {
+
+            signLabel = createLabel(SIGN_SPACE, labelsPool);
+
+            columnConstraints.add(createColumnConstraints(SOMETIMES, -1));
+            add(signLabel, columnIndex++, 1);
+
+        }
+
+        for ( int i = 0; i < iDigits; i++ ) {
+
+            Button iButton = createButton(getIncrementButtonsColor(), buttonsPool);
+            Label label = createLabel('0', labelsPool);
+            Button dButton = createButton(getDecrementButtonsColor(), buttonsPool);
+
+            integerIncrementButtons.add(iButton);
+            integerLabels.add(label);
+            integerDecrementButtons.add(dButton);
+
+            columnConstraints.add(createColumnConstraints(SOMETIMES, digitPercentWidth));
+            add(iButton, columnIndex, 0);
+            add(label, columnIndex, 1);
+            add(dButton, columnIndex, 2);
+
+            columnIndex++;
+
+        }
+
+        if ( hasDotSeparator ) {
+
+            separatorLabel = createLabel(valueFormat.getDecimalFormatSymbols().getDecimalSeparator(), labelsPool);
+
+            columnConstraints.add(createColumnConstraints(SOMETIMES, -1));
+            add(separatorLabel, columnIndex++, 1);
+
+            for ( int i = 0; i < dDigits; i++ ) {
+
+                Button iButton = createButton(getIncrementButtonsColor(), buttonsPool);
+                Label label = createLabel('0', labelsPool);
+                Button dButton = createButton(getDecrementButtonsColor(), buttonsPool);
+
+                decimalIncrementButtons.add(iButton);
+                decimalLabels.add(label);
+                decimalDecrementButtons.add(dButton);
+
+                columnConstraints.add(createColumnConstraints(SOMETIMES, digitPercentWidth));
+                add(iButton, columnIndex, 0);
+                add(label, columnIndex, 1);
+                add(dButton, columnIndex, 2);
+
+                columnIndex++;
+
+            }
+
+        }
+
+    }
+
+    private void updateValue() {
+
+        //  --------------------------------------------------------------------
+        //  Create string representation of integer and decimal parts.
+        //
+        double val = getValue();
+        int iDigits = getIntegerDigits();
+        int dDigits = getDecimalDigits();
+        StringBuilder builder = new StringBuilder(iDigits + 1 + dDigits);
+
+        setInvalid(val > effectiveMax || val < effectiveMin);
+
+        if ( isInvalid() ) {
+
+            builder = new StringBuilder(iDigits);
+
+            for ( int i = 0; i < iDigits; i++ ) {
+                builder.append(INVALID_MARK);
+            }
+
+            integerRepresentation = builder.toString();
+
+            if ( hasDotSeparator ) {
+
+                builder = new StringBuilder(dDigits);
+
+                for ( int i = 0; i < dDigits; i++ ) {
+                    builder.append(INVALID_MARK);
+                }
+
+                decimalRepresentation = builder.toString();
+
+            } else {
+                decimalRepresentation = "";
+            }
+
+        } else {
+
+            double fValue = Double.parseDouble(valueFormat.format(val));
+            String sValue = valueFormat.format(Math.abs(fValue));
+
+            if ( hasDotSeparator ) {
+
+                int dotIndex = sValue.indexOf(valueFormat.getDecimalFormatSymbols().getDecimalSeparator());
+
+                integerRepresentation = sValue.substring(0, dotIndex);
+                decimalRepresentation = sValue .substring(1 + dotIndex);
+
+            } else {
+                integerRepresentation = sValue;
+                decimalRepresentation = "";
+            }
+
+
+        }
+
+        //  --------------------------------------------------------------------
+        //  Update labels.
+        //
+        if ( hasNegativeSign ) {
+            signLabel.setText(String.valueOf(( val < 0 ) ? SIGN_MARK : SIGN_SPACE));
+        }
+
+        for ( int i = 0; i < iDigits; i++ ) {
+            integerLabels.get(i).setText(String.valueOf(integerRepresentation.charAt(i)));
+        }
+
+        for ( int i = 0; i < dDigits; i++ ) {
+            decimalLabels.get(i).setText(String.valueOf(decimalRepresentation.charAt(i)));
+        }
+
+    }
+
+}
