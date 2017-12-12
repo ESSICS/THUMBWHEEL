@@ -1,1 +1,4 @@
 /.projectKnowledge/
+/build/
+/dist/
+/nbproject/private/
