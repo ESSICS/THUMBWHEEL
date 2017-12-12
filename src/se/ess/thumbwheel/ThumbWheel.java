@@ -191,6 +191,8 @@ public class ThumbWheel extends GridPane {
         protected void invalidated() {
             if ( get() == null ) {
                 set(Color.BLACK);
+            } else if ( !isInvalid() ) {
+                changeLabelsColor(get());
             }
         }
     };
@@ -314,7 +316,12 @@ public class ThumbWheel extends GridPane {
     /*
      * ---- invalid ------------------------------------------------------------
      */
-    private final BooleanProperty invalid = new SimpleBooleanProperty(this, "invalid", false);
+    private final BooleanProperty invalid = new SimpleBooleanProperty(this, "invalid", false) {
+        @Override
+        protected void invalidated() {
+            changeLabelsColor(get() ? getInvalidColor() : getForegroundColor());
+        }
+    };
 
     public ReadOnlyBooleanProperty invalidProperty() {
         return invalid;
@@ -336,6 +343,8 @@ public class ThumbWheel extends GridPane {
         protected void invalidated() {
             if ( get() == null ) {
                 set(Color.RED);
+            } else if ( isInvalid() ) {
+                changeLabelsColor(get());
             }
         }
     };
@@ -479,6 +488,26 @@ public class ThumbWheel extends GridPane {
      */
     {
         initialize();
+    }
+
+    /**
+     * Updates the labels color.
+     *
+     * @param color The new {@link Color} value.
+     */
+    private void changeLabelsColor ( final Color color ) {
+
+        if ( signLabel != null ) {
+            signLabel.setTextFill(color);
+        }
+
+        if ( separatorLabel != null ) {
+            separatorLabel.setTextFill(color);
+        }
+
+        integerLabels.stream().forEach(label -> label.setTextFill(color));
+        decimalLabels.stream().forEach(label -> label.setTextFill(color));
+
     }
 
     /**
@@ -630,7 +659,7 @@ public class ThumbWheel extends GridPane {
         label.setMinSize(0, 0);
         label.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
         label.setText(String.valueOf(character));
-        label.setTextFill(getForegroundColor());
+        label.setTextFill(isInvalid() ? getInvalidColor() : getForegroundColor());
 
         return label;
 
