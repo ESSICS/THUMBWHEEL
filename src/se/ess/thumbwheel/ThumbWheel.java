@@ -126,6 +126,13 @@ public class ThumbWheel extends GridPane {
         protected void invalidated() {
             if ( get() == null ) {
                 set(DEFAULT_DECREMENT_BUTTON_COLOR);
+            } else {
+
+                String style = createColorStyle("-fx-base", get());
+
+                integerDecrementButtons.stream().forEach(button -> button.setStyle(style));
+                decimalDecrementButtons.stream().forEach(button -> button.setStyle(style));
+
             }
         }
     };
@@ -208,6 +215,21 @@ public class ThumbWheel extends GridPane {
         protected void invalidated() {
             if ( get() == null ) {
                 set(DEFAULT_FONT);
+            } else {
+
+                Font f = get();
+
+                if ( signLabel != null ) {
+                    signLabel.setFont(f);
+                }
+
+                if ( separatorLabel != null ) {
+                    separatorLabel.setFont(f);
+                }
+
+                integerLabels.stream().forEach(label -> label.setFont(f));
+                decimalLabels.stream().forEach(label -> label.setFont(f));
+
             }
         }
     };
@@ -232,6 +254,13 @@ public class ThumbWheel extends GridPane {
         protected void invalidated() {
             if ( get() == null ) {
                 set(DEFAULT_INCREMENT_BUTTON_COLOR);
+            } else {
+
+                String style = createColorStyle("-fx-base", get());
+
+                integerIncrementButtons.stream().forEach(button -> button.setStyle(style));
+                decimalIncrementButtons.stream().forEach(button -> button.setStyle(style));
+
             }
         }
     };
