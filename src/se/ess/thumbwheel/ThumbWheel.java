@@ -33,6 +33,8 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -67,6 +69,8 @@ public class ThumbWheel extends GridPane {
     private static final char SIGN_SPACE = '\u2002';
     private static final Logger LOGGER = Logger.getLogger(ThumbWheel.class.getName());
 
+    private final EventHandler<ActionEvent> buttonPressedHandler = event ->
+        setValue(getValue() + (double) ((Button) event.getSource()).getUserData());
     private String decimalRepresentation = "00";
     private final List<Button> decimalDecrementButtons = new ArrayList<>(3);
     private final List<Button> decimalIncrementButtons = new ArrayList<>(3);
@@ -521,19 +525,31 @@ public class ThumbWheel extends GridPane {
      * Return a configured {@link Button}, taking it from the given {@code pool}
      * or creating it from scratch.
      *
-     * @param color The button {@link Color}.
-     * @param pool  The pool of already existing {@link Button}s to be recycled.
+     * @param color       The button {@link Color}.
+     * @param valueOffset The value to be added to current value.
+     * @param pool        The pool of already existing {@link Button}s to be recycled.
      * @return A configured {@link Button}.
      */
-    private Button createButton( Color color, Stack<Button> pool ) {
+    private Button createButton( Color color, double valueOffset, Stack<Button> pool ) {
 
-        Button button = pool.isEmpty() ? new Button() : pool.pop();
+        Button button;
+
+        if ( pool.isEmpty() ) {
+            
+            button = new Button();
+
+            button.setOnAction(buttonPressedHandler);
+
+        } else {
+            button = pool.pop();
+        }
 
         button.setGraphicTextGap(0);
         button.setMaxSize(MAX_VALUE, MAX_VALUE);
         button.setMinSize(0, 0);
         button.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
         button.setStyle(createColorStyle("-fx-base", color));
+        button.setUserData(valueOffset);
 
         return button;
 
@@ -800,9 +816,10 @@ public class ThumbWheel extends GridPane {
 
         for ( int i = 0; i < iDigits; i++ ) {
 
-            Button iButton = createButton(getIncrementButtonsColor(), buttonsPool);
+            double valueOffset = Math.pow(10, iDigits - i - 1);
+            Button iButton = createButton(getIncrementButtonsColor(), valueOffset, buttonsPool);
             Label label = createLabel('0', labelsPool);
-            Button dButton = createButton(getDecrementButtonsColor(), buttonsPool);
+            Button dButton = createButton(getDecrementButtonsColor(), - valueOffset, buttonsPool);
 
             integerIncrementButtons.add(iButton);
             integerLabels.add(label);
@@ -826,9 +843,10 @@ public class ThumbWheel extends GridPane {
 
             for ( int i = 0; i < dDigits; i++ ) {
 
-                Button iButton = createButton(getIncrementButtonsColor(), buttonsPool);
+                double valueOffset = Math.pow(10, - i - 1);
+                Button iButton = createButton(getIncrementButtonsColor(), valueOffset, buttonsPool);
                 Label label = createLabel('0', labelsPool);
-                Button dButton = createButton(getDecrementButtonsColor(), buttonsPool);
+                Button dButton = createButton(getDecrementButtonsColor(), - valueOffset, buttonsPool);
 
                 decimalIncrementButtons.add(iButton);
                 decimalLabels.add(label);
