@@ -19,6 +19,7 @@ package se.ess.thumbwheel;
 
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -70,8 +71,6 @@ public class ThumbWheel extends GridPane {
     private static final char SIGN_SPACE = '\u2002';
     private static final Logger LOGGER = Logger.getLogger(ThumbWheel.class.getName());
 
-    private final EventHandler<ActionEvent> buttonPressedHandler = event ->
-        setValue(getValue() + (double) ((Button) event.getSource()).getUserData());
     private String decimalRepresentation = "00";
     private final List<Button> decimalDecrementButtons = new ArrayList<>(3);
     private final List<Button> decimalIncrementButtons = new ArrayList<>(3);
@@ -84,38 +83,52 @@ public class ThumbWheel extends GridPane {
     private final List<Button> integerDecrementButtons = new ArrayList<>(3);
     private final List<Button> integerIncrementButtons = new ArrayList<>(3);
     private final List<Label> integerLabels = new ArrayList<>(3);
+    private Label separatorLabel = null;
+    private Label signLabel = null;
+    private DecimalFormat valueFormat = new DecimalFormat("000.00");
+
+    /*
+     * ---- handlers -----------------------------------------------------------
+     */
+    private final EventHandler<ActionEvent> buttonPressedHandler = event -> {
+        try {
+            setValue(valueFormat.parse(valueFormat.format(getValue() + (double) ((Button) event.getSource()).getUserData())).doubleValue());
+        } catch ( ParseException ex ) {
+            LOGGER.throwing(ThumbWheel.class.getSimpleName(), "labelScrollHandler", ex);
+        }
+    };
     private final EventHandler<ScrollEvent> labelScrollHandler = event -> {
 
         int index = integerLabels.indexOf(event.getSource());
         double deltaY = event.getDeltaY();
 
-//  TODO: CR: add "scrollEnable" property.
-
-        if ( index >= 0 ) {
-            if ( deltaY > 0 ) {
-                setValue(getValue() + (double) integerDecrementButtons.get(index).getUserData());
-            } else {
-                setValue(getValue() + (double) integerIncrementButtons.get(index).getUserData());
-            }
-        } else {
-
-            index = decimalLabels.indexOf(event.getSource());
-
-            if ( index >= 0 ) {
-                if ( deltaY > 0 ) {
-                    setValue(getValue() + (double) decimalDecrementButtons.get(index).getUserData());
+        if ( isScrollEnabled() ) {
+            try {
+                if ( index >= 0 ) {
+                    if ( deltaY > 0 ) {
+                        setValue(valueFormat.parse(valueFormat.format(getValue() + (double) integerDecrementButtons.get(index).getUserData())).doubleValue());
+                    } else {
+                        setValue(valueFormat.parse(valueFormat.format(getValue() + (double) integerIncrementButtons.get(index).getUserData())).doubleValue());
+                    }
                 } else {
-                    setValue(getValue() + (double) decimalIncrementButtons.get(index).getUserData());
-                }
-            }
 
+                    index = decimalLabels.indexOf(event.getSource());
+
+                    if ( index >= 0 ) {
+                        if ( deltaY > 0 ) {
+                            setValue(valueFormat.parse(valueFormat.format(getValue() + (double) decimalDecrementButtons.get(index).getUserData())).doubleValue());
+                        } else {
+                            setValue(valueFormat.parse(valueFormat.format(getValue() + (double) decimalIncrementButtons.get(index).getUserData())).doubleValue());
+                        }
+                    }
+
+                }
+            } catch ( ParseException ex ) {
+                LOGGER.throwing(ThumbWheel.class.getSimpleName(), "labelScrollHandler", ex);
+            }
         }
 
-
     };
-    private Label separatorLabel = null;
-    private Label signLabel = null;
-    private DecimalFormat valueFormat = new DecimalFormat("000.00");
 
     /*
      * ---- backgroundColor ----------------------------------------------------
@@ -475,6 +488,23 @@ public class ThumbWheel extends GridPane {
 
     public void setMinValue( double minValue ) {
         this.minValue.set(minValue);
+    }
+
+    /*
+     * ---- scrollEnabled ------------------------------------------------------
+     */
+    private final BooleanProperty scrollEnabled = new SimpleBooleanProperty(this, "scrollEnabled", false);
+
+    public BooleanProperty scrollEnabledProperty() {
+        return scrollEnabled;
+    }
+
+    public boolean isScrollEnabled() {
+        return scrollEnabled.get();
+    }
+
+    public void setScrollEnabled( boolean scrollEnabled ) {
+        this.scrollEnabled.set(scrollEnabled);
     }
 
     /*
@@ -1001,21 +1031,26 @@ public class ThumbWheel extends GridPane {
 
         } else {
 
-            double fValue = Double.parseDouble(valueFormat.format(val));
-            String sValue = valueFormat.format(Math.abs(fValue));
+            try {
 
-            if ( hasDotSeparator ) {
+                double fValue = valueFormat.parse(valueFormat.format(val)).doubleValue();
+                String sValue = valueFormat.format(Math.abs(fValue));
 
-                int dotIndex = sValue.indexOf(valueFormat.getDecimalFormatSymbols().getDecimalSeparator());
+                if ( hasDotSeparator ) {
 
-                integerRepresentation = sValue.substring(0, dotIndex);
-                decimalRepresentation = sValue .substring(1 + dotIndex);
+                    int dotIndex = sValue.indexOf(valueFormat.getDecimalFormatSymbols().getDecimalSeparator());
 
-            } else {
-                integerRepresentation = sValue;
-                decimalRepresentation = "";
+                    integerRepresentation = sValue.substring(0, dotIndex);
+                    decimalRepresentation = sValue .substring(1 + dotIndex);
+
+                } else {
+                    integerRepresentation = sValue;
+                    decimalRepresentation = "";
+                }
+
+            } catch ( ParseException ex ) {
+                LOGGER.throwing(ThumbWheel.class.getSimpleName(), "updateValue", ex);
             }
-
 
         }
 
