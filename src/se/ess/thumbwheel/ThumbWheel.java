@@ -23,6 +23,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -47,6 +48,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -65,11 +67,17 @@ public class ThumbWheel extends GridPane {
 
     private static final Color DEFAULT_DECREMENT_BUTTON_COLOR = Color.web("#d7d7ec");
     private static final Font DEFAULT_FONT = new Label().getFont();
+    private static final double DEFAULT_HGAP = 2.0;
     private static final Color DEFAULT_INCREMENT_BUTTON_COLOR = Color.web("#ecd7d7");
     private static final char INVALID_MARK = '\u00D7';
+    private static final Logger LOGGER = Logger.getLogger(ThumbWheel.class.getName());
     private static final char SIGN_MARK = '\u2013';
     private static final char SIGN_SPACE = '\u2002';
-    private static final Logger LOGGER = Logger.getLogger(ThumbWheel.class.getName());
+    private static final double SPINNER_HGAP = -1.0;
+    private static final Consumer<? super Button> STYLE_CLASS_REMOVER = button -> {
+        button.getStyleClass().remove("thumb-wheel-increment-spinner-button");
+        button.getStyleClass().remove("thumb-wheel-decrement-spinner-button");
+    };
 
     private String decimalRepresentation = "00";
     private final List<Button> decimalDecrementButtons = new ArrayList<>(3);
@@ -292,6 +300,35 @@ public class ThumbWheel extends GridPane {
     }
 
     /*
+     * ---- graphicVisible -----------------------------------------------------
+     */
+    private final BooleanProperty graphicVisible = new SimpleBooleanProperty(this, "graphicVisible", false) {
+        @Override
+        protected void invalidated() {
+
+            boolean gVisible = get();
+
+            integerIncrementButtons.stream().forEach(button -> button.setGraphic(gVisible ? createButtonGraphic(true) : null));
+            integerDecrementButtons.stream().forEach(button -> button.setGraphic(gVisible ? createButtonGraphic(false) : null));
+            decimalIncrementButtons.stream().forEach(button -> button.setGraphic(gVisible ? createButtonGraphic(true) : null));
+            decimalDecrementButtons.stream().forEach(button -> button.setGraphic(gVisible ? createButtonGraphic(false) : null));
+
+        }
+    };
+
+    public BooleanProperty graphicVisibleProperty() {
+        return graphicVisible;
+    }
+
+    public boolean isGraphicVisible() {
+        return graphicVisible.get();
+    }
+
+    public void setGraphicVisible( boolean graphicVisible ) {
+        this.graphicVisible.set(graphicVisible);
+    }
+
+    /*
      * ---- incrementButtonsColor ----------------------------------------------
      */
     private final ObjectProperty<Color> incrementButtonsColor = new SimpleObjectProperty<Color>(this, "incrementButtonsColor", DEFAULT_INCREMENT_BUTTON_COLOR) {
@@ -508,6 +545,52 @@ public class ThumbWheel extends GridPane {
     }
 
     /*
+     * ---- spinnerShaped ------------------------------------------------------
+     */
+    private final BooleanProperty spinnerShaped = new SimpleBooleanProperty(this, "spinnerShaped", false) {
+        @Override
+        protected void invalidated() {
+
+            boolean sShaped = get();
+
+            integerIncrementButtons.stream().forEach(STYLE_CLASS_REMOVER);
+            integerDecrementButtons.stream().forEach(STYLE_CLASS_REMOVER);
+            decimalIncrementButtons.stream().forEach(STYLE_CLASS_REMOVER);
+            decimalDecrementButtons.stream().forEach(STYLE_CLASS_REMOVER);
+
+            if ( sShaped ) {
+                setHgap(SPINNER_HGAP);
+                integerIncrementButtons.stream().forEach(button -> button.getStyleClass().add("thumb-wheel-increment-spinner-button"));
+                integerDecrementButtons.stream().forEach(button -> button.getStyleClass().add("thumb-wheel-decrement-spinner-button"));
+                decimalIncrementButtons.stream().forEach(button -> button.getStyleClass().add("thumb-wheel-increment-spinner-button"));
+                decimalDecrementButtons.stream().forEach(button -> button.getStyleClass().add("thumb-wheel-decrement-spinner-button"));
+            } else {
+                setHgap(DEFAULT_HGAP);
+            }
+
+            if ( isGraphicVisible() ) {
+                integerIncrementButtons.stream().forEach(button -> button.setGraphic(createButtonGraphic(true)));
+                integerDecrementButtons.stream().forEach(button -> button.setGraphic(createButtonGraphic(false)));
+                decimalIncrementButtons.stream().forEach(button -> button.setGraphic(createButtonGraphic(true)));
+                decimalDecrementButtons.stream().forEach(button -> button.setGraphic(createButtonGraphic(false)));
+            }
+
+        }
+    };
+
+    public BooleanProperty spinnerShapedProperty() {
+        return spinnerShaped;
+    }
+
+    public boolean isSpinnerShaped() {
+        return spinnerShaped.get();
+    }
+
+    public void setSpinnerShaped( boolean spinnerShaped ) {
+        this.spinnerShaped.set(spinnerShaped);
+    }
+
+    /*
      * ---- value --------------------------------------------------------------
      */
     private final DoubleProperty value = new SimpleDoubleProperty(this, "value", 0) {
@@ -643,12 +726,13 @@ public class ThumbWheel extends GridPane {
      * Return a configured {@link Button}, taking it from the given {@code pool}
      * or creating it from scratch.
      *
-     * @param color       The button {@link Color}.
-     * @param valueOffset The value to be added to current value.
-     * @param pool        The pool of already existing {@link Button}s to be recycled.
+     * @param incrementButton {@code true} if the {@link Button} is for increment.
+     * @param color           The button {@link Color}.
+     * @param valueOffset     The value to be added to current value.
+     * @param pool            The pool of already existing {@link Button}s to be recycled.
      * @return A configured {@link Button}.
      */
-    private Button createButton( Color color, double valueOffset, Stack<Button> pool ) {
+    private Button createButton( boolean incrementButton, Color color, double valueOffset, Stack<Button> pool ) {
 
         Button button;
 
@@ -668,8 +752,52 @@ public class ThumbWheel extends GridPane {
         button.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
         button.setStyle(createColorStyle("-fx-base", color));
         button.setUserData(valueOffset);
+        button.setGraphic(isGraphicVisible() ? createButtonGraphic(incrementButton) : null);
+        button.getStyleClass().remove("thumb-wheel-increment-spinner-button");
+        button.getStyleClass().remove("thumb-wheel-decrement-spinner-button");
+
+        if ( isSpinnerShaped() ) {
+            button.getStyleClass().add(incrementButton ? "thumb-wheel-increment-spinner-button" : "thumb-wheel-decrement-spinner-button");
+        }
 
         return button;
+
+    }
+
+    /**
+     * Create the button graphic to be used inside a button.
+     *
+     * @param incrementButton {@code true} if the {@link Button} is for increment.
+     * @return A proper mark {@code node}.
+     */
+    private Node createButtonGraphic ( boolean incrementButton ) {
+
+        Region node = new Region();
+
+        node.setMinSize(USE_PREF_SIZE, USE_PREF_SIZE);
+        node.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
+
+        if ( isSpinnerShaped() ) {
+
+            node.setPrefSize(9, 5);
+
+            if ( incrementButton ) {
+                node.getStyleClass().add("thumb-wheel-increment-arrow");
+            } else {
+                node.getStyleClass().add("thumb-wheel-decrement-arrow");
+            }
+
+        } else {
+            if ( incrementButton ) {
+                node.setPrefSize(5, 5);
+                node.getStyleClass().add("thumb-wheel-increment-mark");
+            } else {
+                node.setPrefSize(5, 2);
+                node.getStyleClass().add("thumb-wheel-decrement-mark");
+            }
+        }
+
+        return node;
 
     }
 
@@ -744,7 +872,7 @@ public class ThumbWheel extends GridPane {
         getStyleClass().add("thumb-wheel");
         setStyle(createColorStyle("-se-thumbwheel-inner-background", getBackgroundColor()));
 
-        setHgap(2.0);
+        setHgap(isSpinnerShaped() ? SPINNER_HGAP : DEFAULT_HGAP);
         setPadding(new Insets(3));
 
         ObservableList<RowConstraints> rowConstraints = getRowConstraints();
@@ -945,9 +1073,9 @@ public class ThumbWheel extends GridPane {
         for ( int i = 0; i < iDigits; i++ ) {
 
             double valueOffset = Math.pow(10, iDigits - i - 1);
-            Button iButton = createButton(getIncrementButtonsColor(), valueOffset, buttonsPool);
+            Button iButton = createButton(true, getIncrementButtonsColor(), valueOffset, buttonsPool);
             Label label = createLabel('0', labelsPool);
-            Button dButton = createButton(getDecrementButtonsColor(), - valueOffset, buttonsPool);
+            Button dButton = createButton(false, getDecrementButtonsColor(), - valueOffset, buttonsPool);
 
             integerIncrementButtons.add(iButton);
             integerLabels.add(label);
@@ -972,9 +1100,9 @@ public class ThumbWheel extends GridPane {
             for ( int i = 0; i < dDigits; i++ ) {
 
                 double valueOffset = Math.pow(10, - i - 1);
-                Button iButton = createButton(getIncrementButtonsColor(), valueOffset, buttonsPool);
+                Button iButton = createButton(true, getIncrementButtonsColor(), valueOffset, buttonsPool);
                 Label label = createLabel('0', labelsPool);
-                Button dButton = createButton(getDecrementButtonsColor(), - valueOffset, buttonsPool);
+                Button dButton = createButton(false, getDecrementButtonsColor(), - valueOffset, buttonsPool);
 
                 decimalIncrementButtons.add(iButton);
                 decimalLabels.add(label);

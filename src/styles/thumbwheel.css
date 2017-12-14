@@ -25,3 +25,45 @@
     -fx-background-radius: 3, 2;
 }
 
+.thumb-wheel-increment-spinner-button {
+    -fx-background-color: -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0, 1, 2;
+    -fx-background-radius: 3 3 0 0, 2 2 0 0, 1 1 0 0;
+    -fx-padding: 0.333335em 0.666667em 0.333335em 0.666667em;  /* 5 8 3 8 */
+}
+
+.thumb-wheel-decrement-spinner-button {
+    -fx-background-color: -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0, 1, 2;
+    -fx-background-radius: 0 0 3 3, 0 0 2 2, 0 0 1 1;
+    -fx-padding: 0.333335em 0.666667em 0.333335em 0.666667em;  /* 3 8 5 8 */
+}
+
+.thumb-wheel-increment-arrow {
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-padding: 0.166667em 0.333333em 0.166667em 0.333333em;  /* 2 4 2 4 */
+    -fx-shape: "M 0 4 h 7 l -3.5 -4 z";
+}
+
+.thumb-wheel-decrement-arrow {
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-padding: 0.166667em 0.333333em 0.166667em 0.333333em; /* 2 4 2 4 */
+    -fx-shape: "M 0 0 h 7 l -3.5 4 z";
+}
+
+.thumb-wheel-increment-mark {
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-padding: 0.166667em 0.333333em 0.166667em 0.333333em;  /* 2 4 2 4 */
+    -fx-shape: "M 1.3 0 v 1.3 h -1.3 v 1.2 h 1.3 v 1.3 h 1.2 v -1.3 h 1.3 v -1.2 h -1.3 v -1.3 z";
+}
+
+.thumb-wheel-decrement-mark {
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-padding: 0.166667em 0.333333em 0.166667em 0.333333em;  /* 2 4 2 4 */
+    -fx-shape: "M 0 1.3 v 1.2 h 4 v -1.2 z";
+}
+
