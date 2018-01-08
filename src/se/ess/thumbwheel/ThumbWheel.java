@@ -73,7 +73,7 @@ public class ThumbWheel extends GridPane {
     private static final Logger LOGGER = Logger.getLogger(ThumbWheel.class.getName());
     private static final char SIGN_MARK = '\u2013';
     private static final char SIGN_SPACE = '\u2002';
-    private static final double SPINNER_HGAP = -1.0;
+    private static final double SPINNER_HGAP = 0;
     private static final Consumer<? super Button> STYLE_CLASS_REMOVER = button -> {
         button.getStyleClass().remove("thumb-wheel-increment-spinner-button");
         button.getStyleClass().remove("thumb-wheel-decrement-spinner-button");
