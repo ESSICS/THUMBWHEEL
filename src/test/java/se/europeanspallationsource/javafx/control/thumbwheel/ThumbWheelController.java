@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package se.ess.thumbwheel;
+package se.europeanspallationsource.javafx.control.thumbwheel;
 
 
 import java.beans.BeanInfo;

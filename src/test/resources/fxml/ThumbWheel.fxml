@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import org.controlsfx.control.PropertySheet?>
 
-<AnchorPane id="AnchorPane" prefHeight="600.0" prefWidth="800.0" stylesheets="@../styles/dark-style.css" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.141" fx:controller="se.ess.thumbwheel.ThumbWheelController">
+<AnchorPane id="AnchorPane" prefHeight="600.0" prefWidth="800.0" stylesheets="@../styles/dark-style.css" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.141" fx:controller="se.europeanspallationsource.javafx.control.thumbwheel.ThumbWheelController">
    <children>
       <SplitPane dividerPositions="0.6" layoutX="69.0" layoutY="158.0" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <items>

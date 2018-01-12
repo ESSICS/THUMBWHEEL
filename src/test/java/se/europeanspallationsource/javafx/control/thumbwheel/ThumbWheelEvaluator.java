@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package se.ess.thumbwheel;
+package se.europeanspallationsource.javafx.control.thumbwheel;
 
 
 import java.io.IOException;
 import java.util.logging.Logger;
-import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.junit.Test;
+import org.testfx.framework.junit.ApplicationTest;
+
+import static javafx.stage.StageStyle.DECORATED;
+import static org.testfx.util.WaitForAsyncUtils.waitForFxEvents;
 
 
 /**
  * @author Claudio Rosati, European Spallation Source ERIC
  */
-public class ThumbWheelEvaluator extends Application {
+public class ThumbWheelEvaluator extends ApplicationTest {
 
     private static final Logger LOGGER = Logger.getLogger(ThumbWheelEvaluator.class.getName());
-
-    public static void main( String[] args ) {
-        launch(args);
-    }
 
     @Override
     public void start( Stage stage ) throws Exception {
@@ -45,6 +45,8 @@ public class ThumbWheelEvaluator extends Application {
             Parent root = FXMLLoader.load(ThumbWheelEvaluator.class.getResource("/fxml/ThumbWheel.fxml"));
             Scene scene = new Scene(root);
 
+            stage.initStyle(DECORATED);
+            stage.setOnCloseRequest(e -> System.exit(0));
             stage.setTitle("Thumb Wheel Evaluator");
             stage.setScene(scene);
             stage.show();
@@ -54,6 +56,17 @@ public class ThumbWheelEvaluator extends Application {
             throw ex;
         }
 
+    }
+
+    /**
+     * Fake test made to avoid TestFX closing the test window at the end of the
+     * tests. Window's close button is the only way to close the application.
+     */
+    @Test
+    public void test() {
+        while ( true ) {
+            waitForFxEvents();
+        }
     }
 
 }

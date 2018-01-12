@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package se.ess.thumbwheel;
+package se.europeanspallationsource.javafx.control.thumbwheel;
 
 
 import java.text.DecimalFormat;
