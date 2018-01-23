@@ -1,4 +1,5 @@
 # THUMBWHEEL
+
 A JavaFX thumb-wheel component reproducing the behavior of a mechanical one, where:
 
 - Arrow keys will navigate through the INC/DEC buttons;
@@ -12,4 +13,16 @@ A JavaFX thumb-wheel component reproducing the behavior of a mechanical one, whe
 
 ![Thumb Wheel Evaluator](https://github.com/ESSICS/THUMBWHEEL/blob/master/doc/thumbwheel-evaluator.png)
 
+## Maven
+
+To add a dependency on THUMBWHEEL using Maven, use the following:
+
+```xml
+<dependency>
+    <groupId>se.europeanspallationsource</groupId>
+    <artifactId>javafx.control.thumbwheel</artifactId>
+    <version>1.0.3</version>
+    <scope>compile</scope>
+</dependency>
+```
 
