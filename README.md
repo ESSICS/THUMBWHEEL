@@ -1,6 +1,7 @@
 # THUMBWHEEL
 
 [![Maven Central](https://img.shields.io/maven-central/v/se.europeanspallationsource/javafx.control.thumbwheel.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22se.europeanspallationsource%22)
+[![javadoc](https://www.javadoc.io/badge/se.europeanspallationsource/javafx.control.thumbwheel.svg?color=orange)](https://www.javadoc.io/doc/se.europeanspallationsource/javafx.control.thumbwheel)
 
 A JavaFX thumb-wheel component reproducing the behavior of a mechanical one, where:
 
